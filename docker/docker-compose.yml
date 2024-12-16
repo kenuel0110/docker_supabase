@@ -4,9 +4,41 @@
 #   Stop:           docker compose down
 #   Destroy:        docker compose -f docker-compose.yml -f ./dev/docker-compose.dev.yml down -v --remove-orphans
 
-name: supabase
 
+version: '3.8'
 services:
+  minio:
+    image: quay.io/minio/minio
+    container_name: minio
+    volumes:
+      - ./minio-data:/data
+    environment:
+      MINIO_ROOT_USER: root_admin
+      MINIO_ROOT_PASSWORD: yousuckedbucket7355608
+      MINIO_SERVER_URL: https://storage.rimsou-conf.ru
+    command: server /data --console-address ":9090"
+  nginx:
+    image: 'jc21/nginx-proxy-manager:latest'
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '81:81'
+      - '443:443'
+    volumes:
+      - ./nginx-data:/data
+      - ./nginx-letsencrypt:/etc/letsencrypt
+
+  authelia:
+    container_name: authelia
+    image: authelia/authelia
+    restart: unless-stopped
+    expose:
+      - 9091
+    volumes:
+      - ./authelia/config:/config
+    environment:
+      TZ: 'Europe/Moscow'
+
   studio:
     container_name: supabase-studio
     image: supabase/studio:20241202-71e5240
@@ -53,9 +85,9 @@ services:
     restart: unless-stopped
     # https://unix.stackexchange.com/a/294837
     entrypoint: bash -c 'eval "echo \"$$(cat ~/temp.yml)\"" > ~/kong.yml && /docker-entrypoint.sh kong docker-start'
-    ports:
-      - ${KONG_HTTP_PORT}:8000/tcp
-      - ${KONG_HTTPS_PORT}:8443/tcp
+    #ports:
+    #  - ${KONG_HTTP_PORT}:8000/tcp
+    #  - ${KONG_HTTPS_PORT}:8443/tcp
     depends_on:
       analytics:
         condition: service_healthy
@@ -259,12 +291,18 @@ services:
       PGRST_JWT_SECRET: ${JWT_SECRET}
       DATABASE_URL: postgres://supabase_storage_admin:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
       FILE_SIZE_LIMIT: 52428800
-      STORAGE_BACKEND: file
+      STORAGE_BACKEND: storage
       FILE_STORAGE_BACKEND_PATH: /var/lib/storage
       TENANT_ID: stub
       # TODO: https://github.com/supabase/storage-api/issues/55
-      REGION: stub
-      GLOBAL_S3_BUCKET: stub
+      REGION: ru-central1
+      AWS_DEFAULT_REGION: ru-central1
+      GLOBAL_S3_FORCE_PATH_STYLE: true
+      GLOBAL_S3_ENDPOINT: https://storage.rimsou-conf.ru
+      GLOBAL_S3_PROTOCOL: https
+      GLOBAL_S3_BUCKET: supabase
+      AWS_ACCESS_KEY_ID: nPxI5AbDLj9koySy9H6q
+      AWS_SECRET_ACCESS_KEY: NjGDsUk0yBRAnL0aEs71fnuyIFlsTmkkVBhHa49P
       ENABLE_IMAGE_TRANSFORMATION: "true"
       IMGPROXY_URL: http://imgproxy:5001
     volumes:
