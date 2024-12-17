@@ -5,7 +5,6 @@
 #   Destroy:        docker compose -f docker-compose.yml -f ./dev/docker-compose.dev.yml down -v --remove-orphans
 
 
-version: '3.8'
 services:
   minio:
     image: quay.io/minio/minio
@@ -28,16 +27,16 @@ services:
       - ./nginx-data:/data
       - ./nginx-letsencrypt:/etc/letsencrypt
 
-  authelia:
-    container_name: authelia
-    image: authelia/authelia
-    restart: unless-stopped
-    expose:
-      - 9091
-    volumes:
-      - ./authelia/config:/config
-    environment:
-      TZ: 'Europe/Moscow'
+#  authelia:
+#    container_name: authelia
+#    image: authelia/authelia
+#    restart: unless-stopped
+#    expose:
+#      - 9091
+#    volumes:
+#      - ./authelia/config:/config
+#    environment:
+#      TZ: 'Europe/Moscow'
 
   studio:
     container_name: supabase-studio
